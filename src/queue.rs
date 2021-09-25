@@ -26,7 +26,7 @@ mod tests {
     use std::collections::VecDeque;
     use uuid::Uuid;
 
-    use crate::entry::QueueStatus;
+    use crate::entry::QueueEntryStatus;
 
     use super::*;
 
@@ -69,7 +69,7 @@ mod tests {
     #[tokio::test]
     async fn should_store_and_read() {
         let mut sut = Sut::new("any-url").await.unwrap();
-        let entry = QueueEntry::new(Uuid::new_v4(), QueueStatus::Queued, "red".into());
+        let entry = QueueEntry::new(Uuid::new_v4(), QueueEntryStatus::Queued, "red".into());
         sut.enqueue(entry.clone()).await;
         let d = sut.dequeue(1).await.pop();
         assert_eq!(d, Some(entry));

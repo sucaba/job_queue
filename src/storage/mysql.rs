@@ -1,4 +1,4 @@
-use crate::entry::{QueueEntry, QueueStatus};
+use crate::entry::{QueueEntry, QueueEntryStatus};
 use async_trait::async_trait;
 use sqlx::{MySql, Pool};
 use std::error::Error as StdError;
@@ -27,7 +27,7 @@ impl super::Storage for MySqlStorage {
     async fn enqueue(&mut self, entry: QueueEntry) {
         sqlx::query("insert into job_queue (id, status, message) values (?, ?, ?)")
             .bind(entry.id())
-            .bind(entry.status() as u8)
+            .bind(entry.status().to_u8())
             .bind(entry.data())
             .execute(&self.pool)
             .await
@@ -40,7 +40,7 @@ impl super::Storage for MySqlStorage {
         let result = sqlx::query_as::<_, MySqlRecord>(
             "select * from job_queue where status = ?  limit ? for update",
         )
-        .bind(QueueStatus::Queued as u8)
+        .bind(QueueEntryStatus::Queued.to_u8())
         .bind(count as u32)
         .fetch_all(&mut tx)
         .await
@@ -50,8 +50,8 @@ impl super::Storage for MySqlStorage {
         .collect();
 
         sqlx::query("update job_queue set status=? where status = ?  limit ?")
-            .bind(QueueStatus::Processing as u8)
-            .bind(QueueStatus::Queued as u8)
+            .bind(QueueEntryStatus::Processing.to_u8())
+            .bind(QueueEntryStatus::Queued.to_u8())
             .bind(count as u32)
             .execute(&mut tx)
             .await
@@ -70,20 +70,8 @@ struct MySqlRecord {
     message: String,
 }
 
-impl MySqlRecord {
-    fn queue_status(&self) -> QueueStatus {
-        use QueueStatus::*;
-        match self.status {
-            0 => Queued,
-            1 => Processing,
-            2 => Done,
-            _ => Failed,
-        }
-    }
-}
-
-impl From<MySqlRecord> for QueueEntry {
-    fn from(row: MySqlRecord) -> Self {
-        QueueEntry::new(row.id, row.queue_status(), row.message)
+impl Into<QueueEntry> for MySqlRecord {
+    fn into(self) -> QueueEntry {
+        QueueEntry::new(self.id, QueueEntryStatus::from_u8(self.status), self.message)
     }
 }

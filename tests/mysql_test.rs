@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use uuid::Uuid;
 
-use job_queue::{storage::mysql::MySqlStorage, JobQueue, QueueEntry, QueueStatus};
+use job_queue::{storage::mysql::MySqlStorage, JobQueue, QueueEntry, QueueEntryStatus};
 use mysql_rent::Rent;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
@@ -33,7 +33,7 @@ async fn should_create_and_use_queue() {
     for job in &planned {
         jobs.enqueue(QueueEntry::new(
             Uuid::new_v4(),
-            QueueStatus::Queued,
+            QueueEntryStatus::Queued,
             serde_json::to_string(&job).unwrap(),
         ))
         .await;
